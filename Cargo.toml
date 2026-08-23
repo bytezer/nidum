@@ -1,0 +1,52 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nidum",
+    "crates/nidum-core",
+    "crates/nidum-macros",
+    "crates/nidum-http",
+    "examples/basic-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Nidum Contributors"]
+repository = "https://github.com/nidum-rs/nidum"
+description = "A modular, intuitive, and fast web framework for Rust inspired by NestJS"
+keywords = ["web", "framework", "nestjs", "async", "http"]
+categories = ["web-programming::http-server"]
+
+[workspace.dependencies]
+# Nidum Crates
+nidum = { path = "crates/nidum", version = "0.1.0" }
+nidum-core = { path = "crates/nidum-core", version = "0.1.0" }
+nidum-macros = { path = "crates/nidum-macros", version = "0.1.0" }
+nidum-http = { path = "crates/nidum-http", version = "0.1.0" }
+
+# Async & Runtime
+tokio = { version = "1.39", features = ["full"] }
+
+# HTTP & Networking
+axum = { version = "0.7", features = ["macros"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Proc Macros
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Utilities & Error Handling
+async-trait = "0.1"
+thiserror = "1.0"
+anyhow = "1.0"
