@@ -329,6 +329,7 @@ struct ModuleArgs {
     imports: Vec<syn::Path>,
     controllers: Vec<syn::Path>,
     providers: Vec<syn::Path>,
+    listeners: Vec<syn::Path>,
 }
 
 impl syn::parse::Parse for ModuleArgs {
@@ -347,6 +348,7 @@ impl syn::parse::Parse for ModuleArgs {
                 "imports" => args.imports = path_vec,
                 "controllers" => args.controllers = path_vec,
                 "providers" => args.providers = path_vec,
+                "listeners" => args.listeners = path_vec,
                 "exports" => {}, // Ignored in static DI (everything in the container is public)
                 _other => {
                     return Err(syn::Error::new(key.span(), "Unknown module property"));
@@ -433,6 +435,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
+    let listeners = &module_args.listeners;
+
+    let listener_mounts = listeners.iter().map(|l| {
+        quote! {
+            <#l as ::nidum::__private::nidum_core::EventListener<Self::Container>>::register_listeners(
+                ::nidum::__private::nidum_core::Provides::<#l>::provide(&*container),
+                &*container
+            );
+        }
+    });
+
     let expanded = quote! {
         #item_struct
 
@@ -460,6 +473,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
             fn build_router(container: ::std::sync::Arc<Self::Container>) -> ::nidum::__private::axum::Router {
                 let mut router = ::nidum::__private::axum::Router::new();
                 
+                #(#listener_mounts)*
                 #(#controller_mounts)*
                 #(#import_mounts)*
 
@@ -481,3 +495,78 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute] pub fn options(_args: TokenStream, input: TokenStream) -> TokenStream { input }
 #[proc_macro_attribute] pub fn use_guards(_args: TokenStream, input: TokenStream) -> TokenStream { input }
 #[proc_macro_attribute] pub fn use_interceptors(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream { input }
+
+// --- MACRO: Events ---
+#[proc_macro_attribute]
+pub fn events(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let mut item_impl = syn::parse_macro_input!(input as syn::ItemImpl);
+    let self_ty = item_impl.self_ty.clone();
+    
+    let mut listeners = Vec::new();
+
+    for item in &mut item_impl.items {
+        if let syn::ImplItem::Fn(ref mut method) = item {
+            let mut on_event_attr_index = None;
+            for (idx, attr) in method.attrs.iter().enumerate() {
+                if attr.path().is_ident("on_event") {
+                    on_event_attr_index = Some(idx);
+                    break;
+                }
+            }
+
+            if let Some(idx) = on_event_attr_index {
+                method.attrs.remove(idx);
+                let fn_ident = method.sig.ident.clone();
+                let is_async = method.sig.asyncness.is_some();
+                
+                // Get the first argument type (after &self)
+                if method.sig.inputs.len() >= 2 {
+                    if let syn::FnArg::Typed(pat_type) = &method.sig.inputs[1] {
+                        let event_ty = pat_type.ty.clone();
+                        listeners.push((fn_ident, is_async, event_ty));
+                    }
+                }
+            }
+        }
+    }
+
+    let registrations = listeners.iter().map(|(fn_ident, is_async, event_ty)| {
+        let call_expr = if *is_async {
+            quote::quote! { service.#fn_ident(event).await }
+        } else {
+            quote::quote! { service.#fn_ident(event) }
+        };
+
+        quote::quote! {
+            {
+                let mut rx = emitter.subscribe::<#event_ty>();
+                let service = self.clone();
+                ::nidum::__private::tokio::spawn(async move {
+                    while let Ok(event) = rx.recv().await {
+                        #call_expr;
+                    }
+                });
+            }
+        }
+    });
+
+    let (impl_generics, ty_generics, _) = item_impl.generics.split_for_impl();
+
+    let expanded = quote::quote! {
+        #item_impl
+
+        impl #impl_generics <C> ::nidum::__private::nidum_core::EventListener<C> for #self_ty #ty_generics 
+        where 
+            C: ::nidum::__private::nidum_core::Provides<::nidum::__private::nidum_core::EventEmitter>
+        {
+            fn register_listeners(self: ::std::sync::Arc<Self>, container: &C) {
+                let emitter = ::nidum::__private::nidum_core::Provides::<::nidum::__private::nidum_core::EventEmitter>::provide(container);
+                #(#registrations)*
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_attribute] pub fn on_event(_args: TokenStream, input: TokenStream) -> TokenStream { input }
