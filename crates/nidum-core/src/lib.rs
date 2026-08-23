@@ -7,6 +7,7 @@ pub mod guard;
 pub mod interceptor;
 pub mod filter;
 pub mod events;
+pub mod schedule;
 
 pub use controller::Controller;
 pub use di::*;
@@ -17,3 +18,6 @@ pub use guard::{CanActivate, guard_middleware};
 pub use interceptor::{Interceptor, interceptor_middleware};
 pub use filter::ExceptionFilter;
 pub use events::{EventEmitter, EventListener};
+pub use schedule::{SchedulerRegistry, TaskRegistrar};
+pub use chrono;
+pub use cron;

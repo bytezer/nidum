@@ -330,6 +330,7 @@ struct ModuleArgs {
     controllers: Vec<syn::Path>,
     providers: Vec<syn::Path>,
     listeners: Vec<syn::Path>,
+    tasks: Vec<syn::Path>,
 }
 
 impl syn::parse::Parse for ModuleArgs {
@@ -349,6 +350,7 @@ impl syn::parse::Parse for ModuleArgs {
                 "controllers" => args.controllers = path_vec,
                 "providers" => args.providers = path_vec,
                 "listeners" => args.listeners = path_vec,
+                "tasks" => args.tasks = path_vec,
                 "exports" => {}, // Ignored in static DI (everything in the container is public)
                 _other => {
                     return Err(syn::Error::new(key.span(), "Unknown module property"));
@@ -446,6 +448,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
+    let tasks = &module_args.tasks;
+
+    let task_mounts = tasks.iter().map(|t| {
+        quote! {
+            <#t as ::nidum::__private::nidum_core::TaskRegistrar<Self::Container>>::register_tasks(
+                ::nidum::__private::nidum_core::Provides::<#t>::provide(&*container),
+                &*container
+            );
+        }
+    });
+
     let expanded = quote! {
         #item_struct
 
@@ -474,6 +487,7 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                 let mut router = ::nidum::__private::axum::Router::new();
                 
                 #(#listener_mounts)*
+                #(#task_mounts)*
                 #(#controller_mounts)*
                 #(#import_mounts)*
 
@@ -570,3 +584,79 @@ pub fn events(_args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute] pub fn on_event(_args: TokenStream, input: TokenStream) -> TokenStream { input }
+
+// --- MACRO: Tasks ---
+#[proc_macro_attribute]
+pub fn tasks(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let mut item_impl = syn::parse_macro_input!(input as syn::ItemImpl);
+    let self_ty = item_impl.self_ty.clone();
+    
+    let mut tasks_list = Vec::new();
+
+    for item in &mut item_impl.items {
+        if let syn::ImplItem::Fn(ref mut method) = item {
+            let mut cron_expr = None;
+            let mut attr_index = None;
+            for (idx, attr) in method.attrs.iter().enumerate() {
+                if attr.path().is_ident("cron") {
+                    attr_index = Some(idx);
+                    if let syn::Meta::List(list) = &attr.meta {
+                        if let Ok(lit) = syn::parse2::<syn::LitStr>(list.tokens.clone()) {
+                            cron_expr = Some(lit.value());
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if let Some(idx) = attr_index {
+                method.attrs.remove(idx);
+                let fn_ident = method.sig.ident.clone();
+                if let Some(expr) = cron_expr {
+                    tasks_list.push((fn_ident, expr));
+                }
+            }
+        }
+    }
+
+    let self_ty_str = quote::quote! { #self_ty }.to_string();
+
+    let registrations = tasks_list.iter().map(|(fn_ident, expr)| {
+        let task_name = format!("{}::{}", self_ty_str, fn_ident);
+        quote::quote! {
+            {
+                let service = self.clone();
+                scheduler.register_cron(
+                    #task_name,
+                    #expr,
+                    Box::new(move || {
+                        let service = service.clone();
+                        Box::pin(async move {
+                            service.#fn_ident().await;
+                        })
+                    })
+                );
+            }
+        }
+    });
+
+    let (impl_generics, ty_generics, _) = item_impl.generics.split_for_impl();
+
+    let expanded = quote::quote! {
+        #item_impl
+
+        impl #impl_generics <C> ::nidum::__private::nidum_core::TaskRegistrar<C> for #self_ty #ty_generics 
+        where 
+            C: ::nidum::__private::nidum_core::Provides<::nidum::__private::nidum_core::SchedulerRegistry>
+        {
+            fn register_tasks(self: ::std::sync::Arc<Self>, container: &C) {
+                let scheduler = ::nidum::__private::nidum_core::Provides::<::nidum::__private::nidum_core::SchedulerRegistry>::provide(container);
+                #(#registrations)*
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_attribute] pub fn cron(_args: TokenStream, input: TokenStream) -> TokenStream { input }

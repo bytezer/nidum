@@ -7,12 +7,14 @@ pub mod __private {
     pub use nidum_http;
     pub use axum;
     pub use tokio;
+    pub use nidum_core::chrono;
+    pub use nidum_core::cron;
 }
 
 pub mod prelude {
     // 1. Core Traits and Types
     pub use nidum_core::{
-        Controller, DiError, HttpError, Inject, Injectable, Module, CanActivate, Interceptor, Provides, ExceptionFilter, EventEmitter, EventListener
+        Controller, DiError, HttpError, Inject, Injectable, Module, CanActivate, Interceptor, Provides, ExceptionFilter, EventEmitter, EventListener, SchedulerRegistry, TaskRegistrar
     };
 
     // 2. HTTP Engine & Extractors
@@ -22,7 +24,7 @@ pub mod prelude {
 
     // 3. Proc-Macros
     pub use nidum_macros::{
-        controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, events, Injectable,
+        controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, events, tasks, cron, Injectable,
     };
 
     // 4. Built-in Modules
