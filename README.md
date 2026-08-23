@@ -30,6 +30,8 @@ Nidum has already successfully replicated the core pillars of an enterprise fram
 - 🧯 **Global Exception Filters:** Centralized error handling to map unhandled Rust errors to custom JSON HTTP responses globally via `app.use_global_filter()`.
 - 🗄️ **Database Agnostic DI:** Easily inject asynchronously initialized dependencies (like SeaORM or SQLx connection pools) natively into your modules via container pre-population (`.with_*()` methods).
 - ⚙️ **Config Module:** A built-in `ConfigService` (`nidum-config`) to seamlessly load and parse strongly-typed environment variables from `.env` files.
+- ⏰ **Task Scheduling (`#[cron]`):** Run background tasks inside services natively using Tokio, utilizing a syntax like `#[cron("0/5 * * * * * *")]` and centralized registry via `tasks = [...]`.
+- 📡 **Local Event Emitter:** An in-memory pub/sub mechanism to decouple application logic, allowing services to emit strongly-typed events and react via `#[on_event]`.
 
 ---
 
@@ -37,9 +39,7 @@ Nidum has already successfully replicated the core pillars of an enterprise fram
 
 - [ ] **Nidum CLI (`nidum-cli`):** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services without boilerplate.
 - [ ] **OpenAPI / Swagger Auto-generation:** Analyze the `#[controller]` macros at compile-time to automatically generate a `swagger.json` file and host a Swagger UI route (`/api/docs`).
-- [ ] **Task Scheduling (`#[cron]`):** Run background tasks inside services natively using Tokio, utilizing a syntax like `#[cron("0 * * * *")]`.
 - [ ] **WebSocket Gateways:** A declarative abstraction over Axum's WebSockets to easily handle real-time events using `#[subscribe("event_name")]`.
-- [ ] **Local Event Emitter:** An in-memory pub/sub mechanism to decouple application logic, allowing services to react to internal events via `#[on_event]`.
 
 ---
 
