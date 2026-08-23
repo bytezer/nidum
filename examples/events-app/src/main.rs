@@ -64,7 +64,7 @@ impl AppController {
 )]
 pub struct AppModule;
 
-#[zero]
+#[nidum::zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app = NidumFactory::create()
         .register_module::<AppModule>(Arc::new(AppModuleContainer::new()));

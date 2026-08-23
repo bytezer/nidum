@@ -83,7 +83,7 @@ impl AppController {
 )]
 pub struct AppModule;
 
-#[zero]
+#[nidum::zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let users_conn = DatabaseConnection::connect("postgres://localhost/users").await;
     let analytics_conn = DatabaseConnection::connect("postgres://localhost/analytics").await;

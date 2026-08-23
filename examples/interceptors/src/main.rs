@@ -68,7 +68,7 @@ impl AppController {
 )]
 pub struct AppModule;
 
-#[zero]
+#[nidum::zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt()
         .with_max_level(Level::INFO)

@@ -11,30 +11,33 @@ pub mod __private {
     pub use nidum_core::cron;
 }
 
+// Export the runtime macro at the crate root so users can write #[nidum::zero]
+pub use nidum_macros::zero;
+
 pub mod prelude {
-    // Core Traits and Types
+    // 1. Core Traits and Types
     pub use nidum_core::{
         Controller, DiError, HttpError, Inject, Injectable, Module, CanActivate, Interceptor, Provides, ExceptionFilter, EventEmitter, EventListener, SchedulerRegistry, TaskRegistrar
     };
 
-    // HTTP Engine & Extractors
+    // 2. HTTP Engine & Extractors
     pub use nidum_http::{
         IntoResponse, Json, Path, Query, Response, StatusCode, ValidJson
     };
 
-    // Proc-Macros
+    // 3. Proc-Macros
     pub use nidum_macros::{
         controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, events, tasks, cron, zero, Injectable,
     };
 
-    // Built-in Modules
+    // 4. Built-in Modules
     pub use nidum_config::{ConfigModule, ConfigService};
 
-    // External Dependencies
+    // 5. External Dependencies
     pub use serde::{Deserialize, Serialize};
     pub use validator::Validate;
 
-    // Factory
+    // 6. Factory
     pub use crate::factory::NidumFactory;
     
     // Axum types
