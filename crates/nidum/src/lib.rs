@@ -12,29 +12,29 @@ pub mod __private {
 }
 
 pub mod prelude {
-    // 1. Core Traits and Types
+    // Core Traits and Types
     pub use nidum_core::{
         Controller, DiError, HttpError, Inject, Injectable, Module, CanActivate, Interceptor, Provides, ExceptionFilter, EventEmitter, EventListener, SchedulerRegistry, TaskRegistrar
     };
 
-    // 2. HTTP Engine & Extractors
+    // HTTP Engine & Extractors
     pub use nidum_http::{
         IntoResponse, Json, Path, Query, Response, StatusCode, ValidJson
     };
 
-    // 3. Proc-Macros
+    // Proc-Macros
     pub use nidum_macros::{
         controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, events, tasks, cron, Injectable,
     };
 
-    // 4. Built-in Modules
+    // Built-in Modules
     pub use nidum_config::{ConfigModule, ConfigService};
 
-    // 5. External Dependencies
+    // External Dependencies
     pub use serde::{Deserialize, Serialize};
     pub use validator::Validate;
 
-    // 6. Factory
+    // Factory
     pub use crate::factory::NidumFactory;
     
     // Axum types
