@@ -1,31 +1,53 @@
 # Nidum
 
-> A fast, intuitive, and modular web framework for Rust inspired by NestJS.
+> A highly opinionated, fast, and modular web framework for Rust, heavily inspired by NestJS.
 
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
-Nidum brings the ergonomics, modular architecture, and developer experience of NestJS to the safety and blazing performance of Rust and Tokio.
+---
+
+## 🎯 What is Nidum?
+
+**Nidum** is a backend framework built on top of [Axum](https://github.com/tokio-rs/axum) and [Tokio](https://tokio.rs). It brings the enterprise-grade architecture, developer ergonomics, and structural predictability of TypeScript's NestJS (or Java's Spring Boot) to the Rust ecosystem.
+
+### The Objective
+Rust web frameworks (like Axum or Actix) are famously unopinionated—giving you complete freedom to structure your application. However, as teams and codebases scale, this freedom often leads to architectural spaghetti. 
+
+**Nidum's goal is to lower the barrier of entry for enterprise teams migrating to Rust** by providing a familiar mental model (Controllers, Services, Modules, DI) while remaining strictly idiomatic. Through the use of powerful procedural macros and **Trait-Bound Dependency Injection**, Nidum guarantees your application's architectural integrity entirely at compile-time (Zero-Cost Abstractions).
 
 ---
 
-## 🌟 Key Highlights
+## ✨ Features (What we have achieved)
 
-- **Modular Architecture (`#[module]`):** Group related controllers, providers, and imports with automatic deduplication.
-- **Dynamic Modules (`DynamicModule`):** Configurable modules in runtime.
-- **Declarative Controllers (`#[controller]`):** Define REST endpoints using attribute macros (`#[get]`, `#[post]`, etc.).
-- **Dependency Injection (DI):** Automatic resolution of service dependency trees using `#[derive(Injectable)]` and `Inject<T>`.
-- **Validation Pipes (`ValidJson<T>`):** Automatic validation of incoming DTOs using the `validator` crate.
-- **Guards (`#[use_guards(Guard)]`):** Declarative authorization and request filtering layers.
-- **Structured Error Handling:** Standard `HttpError` enum with automatic JSON responses.
+Nidum has already successfully replicated the core pillars of an enterprise framework:
+
+- 🛡️ **Compile-Time Safe Dependency Injection:** A completely static DI container. Dependencies are resolved using Trait Bounds (`Provides<T>`). If a service is missing, your app simply will not compile. Say goodbye to runtime DI panics.
+- 📦 **Modular Architecture (`#[module]`):** Encapsulate related controllers and providers into strict boundaries to build scalable monoliths or microservices.
+- 🚦 **Declarative Controllers (`#[controller]`):** Define HTTP endpoints cleanly using attribute macros (`#[get]`, `#[post]`, etc.) directly on your `impl` blocks.
+- ✅ **Validation Pipes (`ValidJson<T>`):** Automatic validation of incoming HTTP payloads using the `validator` crate. Invalid DTOs automatically return structured `400 Bad Request` responses.
+- 🔒 **Authorization Guards (`#[use_guards]`):** Apply declarative access-control layers to individual routes or entire controllers.
+- ⚙️ **Config Module:** A built-in `ConfigService` (`nidum-config`) to seamlessly load and parse strongly-typed environment variables from `.env` files.
 
 ---
 
-## 🚀 Quick Example
+## 🚀 Future Roadmap (What we aim to achieve)
+
+- [ ] **Interceptors:** A-O-P (Aspect-Oriented Programming) style request/response interception for global logging, caching, and response mapping.
+- [ ] **Global Exception Filters:** Centralized error handling to map unhandled Rust errors to custom JSON HTTP responses.
+- [ ] **Database Integrations:** Out-of-the-box modules for standard ORMs (like `SeaORM` or `Diesel`) leveraging connection pooling.
+- [ ] **Nidum CLI:** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services.
+
+---
+
+## 💻 Quick Example
+
+Here is a glimpse of how clean and predictable a Nidum application looks:
 
 ```rust
 use nidum::prelude::*;
+use std::sync::Arc;
 
-// 1. Data Transfer Object with Validation
+// 1. Data Transfer Object with Validation Rules
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateUserDto {
     #[validate(length(min = 3))]
@@ -34,41 +56,39 @@ pub struct CreateUserDto {
     pub email: String,
 }
 
-// 2. Auth Guard
+// 2. Service Layer with Compile-Time DI
 #[derive(Injectable)]
-pub struct AuthGuard;
+pub struct UserService {
+    repo: Inject<UserRepository>,     // Automatically resolved at compile-time
+    config: Inject<ConfigService>,    // Injected from nidum-config
+}
 
-#[async_trait]
-impl CanActivate for AuthGuard {
-    async fn can_activate(&self, req: &mut AxumRequest) -> Result<(), HttpError> {
-        if req.headers().contains_key("Authorization") {
-            Ok(())
-        } else {
-            Err(HttpError::Unauthorized("Missing token".to_string()))
-        }
+impl UserService {
+    pub fn create_user(&self, dto: CreateUserDto) {
+        let app_name = self.config.get_or_default("APP_NAME", "Default");
+        // Business logic...
     }
 }
 
-// 3. Controller
+// 3. Controller Layer
 #[derive(Injectable, Clone)]
 pub struct UserController {
-    service: Inject<UserService>, // Auto-injected!
+    service: Inject<UserService>,
 }
 
 #[controller("/users")]
 impl UserController {
-    // ValidJson automatically validates the payload and returns 400 Bad Request if invalid.
+    // Automatically validates payload, returning 400 on failure
     #[post("/")]
     pub async fn create(&self, ValidJson(payload): ValidJson<CreateUserDto>) -> Result<StatusCode, HttpError> {
-        self.service.create_user(payload).await;
+        self.service.create_user(payload);
         Ok(StatusCode::CREATED)
     }
 
-    // Protected by AuthGuard
+    // Declaratively protected by an AuthGuard
     #[delete("/:id")]
     #[use_guards(AuthGuard)]
     pub async fn delete(&self, Path(id): Path<u64>) -> Result<StatusCode, HttpError> {
-        self.service.delete_user(id).await;
         Ok(StatusCode::NO_CONTENT)
     }
 }
@@ -76,13 +96,16 @@ impl UserController {
 // 4. Feature Module
 #[module(
     controllers = [UserController],
-    providers = [UserService, UserRepository, AuthGuard],
+    providers = [UserService, UserRepository, AuthGuard, ConfigService],
 )]
 pub struct UserModule;
 
+// 5. Bootstrap
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let app = NidumFactory::create().register_module::<UserModule>()?;
+    let app = NidumFactory::create()
+        .register_module::<UserModule>(Arc::new(UserModuleContainer::new()));
+        
     app.listen("127.0.0.1:3000").await?;
     Ok(())
 }
