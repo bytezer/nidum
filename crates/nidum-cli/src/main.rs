@@ -83,7 +83,7 @@ fn handle_new(name: &str) {
     
     // Removed duplicate dependencies block
     cargo_toml.push_str("nidum = { version = \"*\" }\n");
-    cargo_toml.push_str("tokio = { version = \"1.0\", features = [\"full\"] }\n");
+    
     
     fs::write(&cargo_toml_path, cargo_toml).expect("Failed to write Cargo.toml");
 
@@ -108,7 +108,7 @@ impl AppController {
 )]
 pub struct AppModule;
 
-#[tokio::main]
+#[zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app = NidumFactory::create()
         .register_module::<AppModule>(Arc::new(AppModuleContainer::new()));

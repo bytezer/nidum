@@ -1,6 +1,6 @@
 use nidum::prelude::*;
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+use nidum::__private::tokio::time::{sleep, Duration};
 
 #[derive(Clone)]
 pub struct DatabaseConnection {
@@ -83,7 +83,7 @@ impl AppController {
 )]
 pub struct AppModule;
 
-#[tokio::main]
+#[zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let users_conn = DatabaseConnection::connect("postgres://localhost/users").await;
     let analytics_conn = DatabaseConnection::connect("postgres://localhost/analytics").await;

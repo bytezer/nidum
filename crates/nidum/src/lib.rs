@@ -24,7 +24,7 @@ pub mod prelude {
 
     // Proc-Macros
     pub use nidum_macros::{
-        controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, events, tasks, cron, Injectable,
+        controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, events, tasks, cron, zero, Injectable,
     };
 
     // Built-in Modules

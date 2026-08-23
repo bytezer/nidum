@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use nidum::prelude::*;
-use tokio::sync::RwLock;
+use nidum::__private::tokio::sync::RwLock;
 
 // Data Transfer Objects (DTOs)
 
@@ -197,7 +197,7 @@ pub struct HealthModule;
 pub struct AppModule;
 
 // Bootstrap
-#[tokio::main]
+#[zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt()
         .with_env_filter(

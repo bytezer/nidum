@@ -1,6 +1,6 @@
 use nidum::prelude::*;
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+use nidum::__private::tokio::time::{sleep, Duration};
 
 // 1. Define typed events
 #[derive(Clone, Debug)]
@@ -64,7 +64,7 @@ impl AppController {
 )]
 pub struct AppModule;
 
-#[tokio::main]
+#[zero]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app = NidumFactory::create()
         .register_module::<AppModule>(Arc::new(AppModuleContainer::new()));

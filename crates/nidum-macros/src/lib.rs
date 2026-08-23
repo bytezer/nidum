@@ -660,3 +660,14 @@ pub fn tasks(_args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute] pub fn cron(_args: TokenStream, input: TokenStream) -> TokenStream { input }
+
+// --- MACRO: Zero (Main Runtime Wrapper) ---
+#[proc_macro_attribute]
+pub fn zero(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::ItemFn);
+    let expanded = quote::quote! {
+        #[::nidum::__private::tokio::main(crate = "::nidum::__private::tokio")]
+        #input
+    };
+    TokenStream::from(expanded)
+}
