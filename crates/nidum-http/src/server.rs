@@ -36,6 +36,22 @@ impl HttpServer {
         self
     }
 
+    pub fn use_global_filter<F: nidum_core::ExceptionFilter>(mut self, filter: F) -> Self {
+        let filter = Arc::new(filter);
+        self.router = self.router.layer(axum::middleware::from_fn_with_state(
+            filter,
+            |state: axum::extract::State<Arc<F>>, req: axum::extract::Request, next: axum::middleware::Next| async move {
+                let res = next.run(req).await;
+                if res.status().is_client_error() || res.status().is_server_error() {
+                    state.0.catch(res)
+                } else {
+                    res
+                }
+            }
+        ));
+        self
+    }
+
     pub fn build_router(self) -> Router {
         let final_router = if let Some(prefix) = self.global_prefix {
             Router::new().nest(&prefix, self.router)

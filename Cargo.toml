@@ -5,7 +5,7 @@ members = [
     "crates/nidum-core",
     "crates/nidum-macros",
     "crates/nidum-http",
-    "examples/basic-app", "crates/nidum-config",
+    "examples/basic-app", "examples/interceptors", "examples/database-app", "crates/nidum-config",
 ]
 
 [workspace.package]

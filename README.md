@@ -26,15 +26,15 @@ Nidum has already successfully replicated the core pillars of an enterprise fram
 - 🚦 **Declarative Controllers (`#[controller]`):** Define HTTP endpoints cleanly using attribute macros (`#[get]`, `#[post]`, etc.) directly on your `impl` blocks.
 - ✅ **Validation Pipes (`ValidJson<T>`):** Automatic validation of incoming HTTP payloads using the `validator` crate. Invalid DTOs automatically return structured `400 Bad Request` responses.
 - 🔒 **Authorization Guards (`#[use_guards]`):** Apply declarative access-control layers to individual routes or entire controllers.
+- 🕵️ **Interceptors (`#[use_interceptors]`):** A-O-P (Aspect-Oriented Programming) style request/response interception for global logging, caching, and response mapping.
+- 🧯 **Global Exception Filters:** Centralized error handling to map unhandled Rust errors to custom JSON HTTP responses globally via `app.use_global_filter()`.
+- 🗄️ **Database Agnostic DI:** Easily inject asynchronously initialized dependencies (like SeaORM or SQLx connection pools) natively into your modules via container pre-population (`.with_*()` methods).
 - ⚙️ **Config Module:** A built-in `ConfigService` (`nidum-config`) to seamlessly load and parse strongly-typed environment variables from `.env` files.
 
 ---
 
 ## 🚀 Future Roadmap (What we aim to achieve)
 
-- [ ] **Interceptors:** A-O-P (Aspect-Oriented Programming) style request/response interception for global logging, caching, and response mapping.
-- [ ] **Global Exception Filters:** Centralized error handling to map unhandled Rust errors to custom JSON HTTP responses.
-- [ ] **Database Integrations:** Out-of-the-box modules for standard ORMs (like `SeaORM` or `Diesel`) leveraging connection pooling.
 - [ ] **Nidum CLI:** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services.
 
 ---

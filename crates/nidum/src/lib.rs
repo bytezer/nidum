@@ -11,7 +11,7 @@ pub mod __private {
 pub mod prelude {
     // 1. Core Traits and Types
     pub use nidum_core::{
-        Controller, DiError, HttpError, Inject, Injectable, Module, CanActivate, Provides
+        Controller, DiError, HttpError, Inject, Injectable, Module, CanActivate, Interceptor, Provides, ExceptionFilter
     };
 
     // 2. HTTP Engine & Extractors
@@ -21,7 +21,7 @@ pub mod prelude {
 
     // 3. Proc-Macros
     pub use nidum_macros::{
-        controller, delete, get, head, module, options, patch, post, put, use_guards, Injectable,
+        controller, delete, get, head, module, options, patch, post, put, use_guards, use_interceptors, Injectable,
     };
 
     // 4. Built-in Modules
@@ -36,5 +36,6 @@ pub mod prelude {
     
     // Axum types
     pub use axum::extract::Request as AxumRequest;
+    pub use axum::middleware::Next;
     pub use axum::async_trait;
 }

@@ -113,14 +113,15 @@ struct RouteDefinition {
     arg_names: Vec<proc_macro2::Ident>,
     arg_types: Vec<syn::Type>,
     guards: Vec<syn::Path>,
+    interceptors: Vec<syn::Path>,
 }
 
-fn extract_guards_from_attrs(attrs: &mut Vec<syn::Attribute>) -> Vec<syn::Path> {
+fn extract_paths_from_attrs(attrs: &mut Vec<syn::Attribute>, attr_name: &str) -> Vec<syn::Path> {
     let mut guards = Vec::new();
     let mut indices_to_remove = Vec::new();
 
     for (i, attr) in attrs.iter().enumerate() {
-        if attr.path().is_ident("use_guards") {
+        if attr.path().is_ident(attr_name) {
             indices_to_remove.push(i);
             if let Meta::List(list) = &attr.meta {
                 if let Ok(parsed_paths) = list.parse_args_with(syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated) {
@@ -153,13 +154,16 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut item_impl = syn::parse_macro_input!(input as ItemImpl);
     let self_ty = item_impl.self_ty.clone();
 
-    let global_guards = extract_guards_from_attrs(&mut item_impl.attrs);
+    let global_guards = extract_paths_from_attrs(&mut item_impl.attrs, "use_guards");
+    let global_interceptors = extract_paths_from_attrs(&mut item_impl.attrs, "use_interceptors");
     let mut routes: Vec<RouteDefinition> = Vec::new();
     let mut all_guard_bounds = Vec::new();
+    let mut all_interceptor_bounds = Vec::new();
 
     for item in &mut item_impl.items {
         if let ImplItem::Fn(ref mut method) = item {
-            let method_guards = extract_guards_from_attrs(&mut method.attrs);
+            let method_guards = extract_paths_from_attrs(&mut method.attrs, "use_guards");
+            let method_interceptors = extract_paths_from_attrs(&mut method.attrs, "use_interceptors");
             
             let mut route_attr_index = None;
             let mut matched_http_method = None;
@@ -213,8 +217,15 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
                 let mut all_guards = global_guards.clone();
                 all_guards.extend(method_guards);
 
+                let mut all_interceptors = global_interceptors.clone();
+                all_interceptors.extend(method_interceptors);
+
                 for g in &all_guards {
                     all_guard_bounds.push(quote! { C: ::nidum::__private::nidum_core::Provides<#g> });
+                }
+
+                for i in &all_interceptors {
+                    all_interceptor_bounds.push(quote! { C: ::nidum::__private::nidum_core::Provides<#i> });
                 }
 
                 routes.push(RouteDefinition {
@@ -225,6 +236,7 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
                     arg_names,
                     arg_types,
                     guards: all_guards,
+                    interceptors: all_interceptors,
                 });
             }
         }
@@ -237,6 +249,7 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
         let arg_names = &route.arg_names;
         let arg_types = &route.arg_types;
         let guards = &route.guards;
+        let interceptors = &route.interceptors;
 
         let call_expr = if route.is_async {
             quote! { controller.#fn_ident(#(#arg_names),*).await }
@@ -253,6 +266,15 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         });
 
+        let interceptor_layers = interceptors.iter().map(|interceptor| {
+            quote! {
+                .layer(::nidum::__private::axum::middleware::from_fn_with_state(
+                    ::nidum::__private::nidum_core::Provides::<#interceptor>::provide(container),
+                    ::nidum::__private::nidum_core::interceptor_middleware::<#interceptor>
+                ))
+            }
+        });
+
         quote! {
             {
                 let controller = controller.clone();
@@ -264,6 +286,7 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
                         #call_expr
                     }
                 })
+                #(#interceptor_layers)*
                 #(#guard_layers)*;
 
                 router = router.route(&full_path, method_router);
@@ -279,6 +302,7 @@ pub fn controller(args: TokenStream, input: TokenStream) -> TokenStream {
         impl #impl_generics <C> ::nidum::__private::nidum_core::Controller<C> for #self_ty #ty_generics 
         where 
             #(#all_guard_bounds,)*
+            #(#all_interceptor_bounds,)*
         {
             fn base_path() -> &'static str {
                 #base_path
@@ -382,6 +406,17 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
+    let with_methods = providers.iter().map(|p| {
+        let field_name = format_ident!("{}", p.segments.last().unwrap().ident.to_string().to_lowercase());
+        let method_name = format_ident!("with_{}", field_name);
+        quote! {
+            pub fn #method_name(self, instance: ::std::sync::Arc<#p>) -> Self {
+                let _ = self.#field_name.set(instance);
+                self
+            }
+        }
+    });
+
     let controller_mounts = controllers.iter().map(|c| {
         quote! {
             let ctrl = <#c as ::nidum::__private::nidum_core::Injectable<Self::Container>>::create(&*container);
@@ -413,6 +448,8 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
                     #(#import_inits,)*
                 }
             }
+
+            #(#with_methods)*
         }
 
         #(#provider_impls)*
@@ -443,3 +480,4 @@ pub fn module(args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute] pub fn head(_args: TokenStream, input: TokenStream) -> TokenStream { input }
 #[proc_macro_attribute] pub fn options(_args: TokenStream, input: TokenStream) -> TokenStream { input }
 #[proc_macro_attribute] pub fn use_guards(_args: TokenStream, input: TokenStream) -> TokenStream { input }
+#[proc_macro_attribute] pub fn use_interceptors(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream { input }
