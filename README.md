@@ -35,7 +35,11 @@ Nidum has already successfully replicated the core pillars of an enterprise fram
 
 ## 🚀 Future Roadmap (What we aim to achieve)
 
-- [ ] **Nidum CLI:** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services.
+- [ ] **Nidum CLI (`nidum-cli`):** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services without boilerplate.
+- [ ] **OpenAPI / Swagger Auto-generation:** Analyze the `#[controller]` macros at compile-time to automatically generate a `swagger.json` file and host a Swagger UI route (`/api/docs`).
+- [ ] **Task Scheduling (`#[cron]`):** Run background tasks inside services natively using Tokio, utilizing a syntax like `#[cron("0 * * * *")]`.
+- [ ] **WebSocket Gateways:** A declarative abstraction over Axum's WebSockets to easily handle real-time events using `#[subscribe("event_name")]`.
+- [ ] **Local Event Emitter:** An in-memory pub/sub mechanism to decouple application logic, allowing services to react to internal events via `#[on_event]`.
 
 ---
 
