@@ -35,9 +35,15 @@ Nidum has already successfully replicated the core pillars of an enterprise fram
 
 ---
 
+- 🛠️ **Nidum CLI (`nidum-cli`):** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services with auto-wiring capabilities.
+
+---
+
 ## 🚀 Future Roadmap (What we aim to achieve)
 
-- [ ] **Nidum CLI (`nidum-cli`):** A command-line tool similar to `nest-cli` to quickly scaffold projects, modules, controllers, and services without boilerplate.
+- [ ] **Testing Module (`nidum-testing`):** A `TestFactory` to easily bootstrap modules in unit/integration tests with the ability to `.override_provider()` for seamless mocking.
+- [ ] **Request-Scoped DI:** Expand the DI container to support non-singleton providers that are instantiated per HTTP request (useful for attaching request context like User IDs to DB transactions).
+- [ ] **CLI Hot-Reloading:** Implement `nidum start --watch` in the CLI to automatically recompile and restart the server on file changes.
 - [ ] **OpenAPI / Swagger Auto-generation:** Analyze the `#[controller]` macros at compile-time to automatically generate a `swagger.json` file and host a Swagger UI route (`/api/docs`).
 - [ ] **WebSocket Gateways:** A declarative abstraction over Axum's WebSockets to easily handle real-time events using `#[subscribe("event_name")]`.
 
