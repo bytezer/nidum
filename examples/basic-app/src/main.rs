@@ -3,9 +3,7 @@ use std::sync::Arc;
 use nidum::prelude::*;
 use tokio::sync::RwLock;
 
-// ==========================================
-// 1. Data Transfer Objects (DTOs)
-// ==========================================
+// Data Transfer Objects (DTOs)
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserDto {
@@ -28,9 +26,8 @@ pub struct UserQuery {
     pub search: Option<String>,
 }
 
-// ==========================================
-// 2. Auth Feature (Guard)
-// ==========================================
+
+// Auth Feature (Guard)
 
 #[derive(Injectable)]
 pub struct AuthGuard;
@@ -47,9 +44,7 @@ impl CanActivate for AuthGuard {
     }
 }
 
-// ==========================================
-// 3. User Feature (Repository, Service, Controller, Module)
-// ==========================================
+// User Feature (Repository, Service, Controller, Module)
 
 #[derive(Injectable, Default)]
 pub struct UserRepository {
@@ -171,9 +166,8 @@ impl UserController {
 )]
 pub struct UserModule;
 
-// ==========================================
-// 4. Health Feature (Controller & Module)
-// ==========================================
+
+// Health Feature (Controller & Module)
 
 #[derive(Injectable, Clone, Default)]
 pub struct HealthController;
@@ -195,19 +189,14 @@ impl HealthController {
 )]
 pub struct HealthModule;
 
-// ==========================================
-// 5. Root Application Module (AppModule)
-// ==========================================
+// Root Application Module (AppModule)
 
 #[module(
     imports = [HealthModule, UserModule],
 )]
 pub struct AppModule;
 
-// ==========================================
-// 6. Bootstrap
-// ==========================================
-
+// Bootstrap
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt()
