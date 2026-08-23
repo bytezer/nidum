@@ -1,0 +1,16 @@
+[package]
+name = "nidum-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+axum.workspace = true
+dotenvy = "0.15.7"
+nidum-core = { version = "0.1.0", path = "../nidum-core" }
+nidum-macros = { version = "0.1.0", path = "../nidum-macros" }

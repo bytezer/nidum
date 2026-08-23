@@ -24,11 +24,14 @@ pub mod prelude {
         controller, delete, get, head, module, options, patch, post, put, use_guards, Injectable,
     };
 
-    // 4. External Dependencies
+    // 4. Built-in Modules
+    pub use nidum_config::{ConfigModule, ConfigService};
+
+    // 5. External Dependencies
     pub use serde::{Deserialize, Serialize};
     pub use validator::Validate;
 
-    // 5. Factory
+    // 6. Factory
     pub use crate::factory::NidumFactory;
     
     // Axum types

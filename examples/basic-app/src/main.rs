@@ -88,10 +88,14 @@ impl UserRepository {
 #[derive(Injectable)]
 pub struct UserService {
     repo: Inject<UserRepository>,
+    config: Inject<ConfigService>,
 }
 
 impl UserService {
     pub async fn list_users(&self, search: Option<String>) -> Vec<UserDto> {
+        let app_name = self.config.get_or_default("APP_NAME", "DefaultApp".to_string());
+        println!("Listing users for app: {}", app_name);
+
         let users = self.repo.find_all().await;
         if let Some(term) = search {
             users
@@ -156,10 +160,14 @@ impl UserController {
     }
 }
 
+// UserModule now requires ConfigService in its container. Since we have a flat module pattern currently,
+// we just add ConfigService to the providers of AppModule, and since UserModule is part of the app,
+// wait, we currently map providers locally. 
+// Yes, our `#[module]` creates a Container for EXACTLY what is in `providers`.
+// So if `UserService` needs `ConfigService`, it MUST be in `providers` of `UserModule` OR we flat-list it in `AppModule`.
 #[module(
     controllers = [UserController],
-    providers = [UserService, UserRepository, AuthGuard],
-    exports = [UserService],
+    providers = [UserService, UserRepository, AuthGuard, ConfigService],
 )]
 pub struct UserModule;
 
@@ -212,7 +220,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Bootstrapping the entire application with its root AppModule
     let app = NidumFactory::create()
         .set_global_prefix("/api/v1")
-        .register_module::<AppModule>(std::sync::Arc::new(AppModuleContainer::new()));
+        .register_module::<AppModule>(Arc::new(AppModuleContainer::new()));
 
     app.listen("127.0.0.1:3000").await?;
 
